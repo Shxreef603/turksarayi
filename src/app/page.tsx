@@ -209,6 +209,31 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState(MENU_DATA[0].category);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showOrderDropdown, setShowOrderDropdown] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showLoader, setShowLoader] = useState(true);
+
+  useEffect(() => {
+    // Prevent scrolling while loading
+    if (isLoading) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    const timer1 = setTimeout(() => {
+      setIsLoading(false);
+    }, 2500);
+    
+    const timer2 = setTimeout(() => {
+      setShowLoader(false);
+    }, 3500);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isLoading]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -243,8 +268,30 @@ export default function Home() {
 
   return (
     <>
+      {/* Loading Screen */}
+      {showLoader && (
+        <div className={`fixed inset-0 z-[9999] bg-surface flex flex-col items-center justify-center transition-all duration-1000 ease-in-out ${isLoading ? 'opacity-100 scale-100' : 'opacity-0 scale-110 pointer-events-none'}`}>
+          <div className="relative w-48 h-48 md:w-64 md:h-64 animate-[pulse_2s_ease-in-out_infinite]">
+            <img 
+              src="/logo.png" 
+              alt="Turk Sarayi Loading" 
+              className="w-full h-full object-contain drop-shadow-[0_0_25px_rgba(201,168,76,0.4)]" 
+            />
+          </div>
+          <div className="mt-12 w-48 md:w-64 h-1.5 bg-secondary/20 rounded-full overflow-hidden relative">
+            <div className="absolute top-0 left-0 h-full bg-secondary shadow-[0_0_15px_rgba(201,168,76,0.8)] w-full origin-left" style={{ animation: 'loadBar 2.5s ease-in-out forwards' }}></div>
+            <style>{`
+              @keyframes loadBar {
+                0% { transform: scaleX(0); }
+                100% { transform: scaleX(1); }
+              }
+            `}</style>
+          </div>
+        </div>
+      )}
+
       {/* TopNavBar */}
-      <nav className="bg-surface/90 backdrop-blur-md fixed top-0 w-full z-[100] border-b border-secondary/20 shadow-lg">
+      <nav className={`bg-surface/90 backdrop-blur-md fixed top-0 w-full z-[100] border-b border-secondary/20 shadow-lg transition-transform duration-1000 delay-500 ${isLoading ? '-translate-y-full' : 'translate-y-0'}`}>
         <div className="flex justify-between items-center px-margin-mobile md:px-margin-desktop py-md max-w-7xl mx-auto">
           <div className="font-headline-md text-headline-md font-bold text-secondary tracking-widest">
             <img
@@ -446,6 +493,7 @@ export default function Home() {
                       alt={img.title}
                       className="h-full w-full object-cover transition-all duration-700 group-hover:scale-110"
                       fill
+                      sizes="(max-width: 768px) 100vw, 320px"
                       src={img.url}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
