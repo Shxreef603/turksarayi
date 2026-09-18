@@ -1,12 +1,6 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: "class",
-  content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
-  ],
   theme: {
     extend: {
       colors: {
@@ -62,7 +56,7 @@ const config: Config = {
         "DEFAULT": "0.125rem",
         "lg": "0.25rem",
         "xl": "0.5rem",
-        "full": "0.75rem"
+        "full": "9999px"
       },
       spacing: {
         "sm": "12px",

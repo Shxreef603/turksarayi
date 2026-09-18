@@ -1,16 +1,25 @@
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600&family=Playfair+Display:wght@600;700&display=swap');
-
 @import "tailwindcss";
 @config "../../tailwind.config.ts";
 
+@variant dark (&:where(.dark, .dark *));
+
 @theme {
-  --font-sans: "Be Vietnam Pro", sans-serif;
+  --font-sans: var(--font-sans), "Be Vietnam Pro", sans-serif;
+  --font-serif: var(--font-playfair), "Playfair Display", serif;
 }
 
 :root {
   --background: #131313;
   --foreground: #e5e2e1;
   scroll-behavior: smooth;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 body {

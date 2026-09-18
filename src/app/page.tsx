@@ -211,37 +211,43 @@ export default function Home() {
   const [showOrderDropdown, setShowOrderDropdown] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showLoader, setShowLoader] = useState(true);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
-    // Prevent scrolling while loading
-    if (isLoading) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const [formSubmitted, setFormSubmitted] = useState(false);
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+
     const timer1 = setTimeout(() => {
       setIsLoading(false);
-    }, 2500);
-    
+      document.body.style.overflow = 'unset';
+    }, 1500);
+
     const timer2 = setTimeout(() => {
       setShowLoader(false);
-    }, 3500);
+    }, 2200);
 
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
       document.body.style.overflow = 'unset';
     };
-  }, [isLoading]);
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting && videoRef.current) {
-            videoRef.current.currentTime = 0;
-            videoRef.current.play();
+            videoRef.current.play().catch(() => {});
           }
         });
       },
@@ -258,6 +264,17 @@ export default function Home() {
     };
   }, []);
 
+  const handleContactSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormSubmitted(true);
+    if (formRef.current) {
+      formRef.current.reset();
+    }
+    setTimeout(() => {
+      setFormSubmitted(false);
+    }, 5000);
+  };
+
   const navLinks = [
     { name: "Home", href: "#hero" },
     { name: "About", href: "#about" },
@@ -270,16 +287,19 @@ export default function Home() {
     <>
       {/* Loading Screen */}
       {showLoader && (
-        <div className={`fixed inset-0 z-[9999] bg-surface flex flex-col items-center justify-center transition-all duration-1000 ease-in-out ${isLoading ? 'opacity-100 scale-100' : 'opacity-0 scale-110 pointer-events-none'}`}>
-          <div className="relative w-48 h-48 md:w-64 md:h-64 animate-[pulse_2s_ease-in-out_infinite]">
-            <img 
-              src="/logo.png" 
-              alt="Turk Sarayi Loading" 
-              className="w-full h-full object-contain drop-shadow-[0_0_25px_rgba(201,168,76,0.4)]" 
+        <div className={`fixed inset-0 z-[9999] bg-surface flex flex-col items-center justify-center transition-all duration-700 ease-in-out ${isLoading ? 'opacity-100 scale-100' : 'opacity-0 scale-105 pointer-events-none'}`}>
+          <div className="relative w-32 h-32 sm:w-48 sm:h-48 animate-[pulse_2s_ease-in-out_infinite]">
+            <Image
+              src="/logo.png"
+              alt="Turk Sarayi Loading"
+              fill
+              sizes="(max-width: 640px) 128px, 192px"
+              className="object-contain drop-shadow-[0_0_25px_rgba(201,168,76,0.4)]"
+              priority
             />
           </div>
-          <div className="mt-12 w-48 md:w-64 h-1.5 bg-secondary/20 rounded-full overflow-hidden relative">
-            <div className="absolute top-0 left-0 h-full bg-secondary shadow-[0_0_15px_rgba(201,168,76,0.8)] w-full origin-left" style={{ animation: 'loadBar 2.5s ease-in-out forwards' }}></div>
+          <div className="mt-8 w-32 sm:w-48 h-1.5 bg-secondary/20 rounded-full overflow-hidden relative">
+            <div className="absolute top-0 left-0 h-full bg-secondary shadow-[0_0_15px_rgba(201,168,76,0.8)] w-full origin-left" style={{ animation: 'loadBar 1.5s ease-in-out forwards' }}></div>
             <style>{`
               @keyframes loadBar {
                 0% { transform: scaleX(0); }
@@ -291,61 +311,76 @@ export default function Home() {
       )}
 
       {/* TopNavBar */}
-      <nav className={`bg-surface/90 backdrop-blur-md fixed top-0 w-full z-[100] border-b border-secondary/20 shadow-lg transition-transform duration-1000 delay-500 ${isLoading ? '-translate-y-full' : 'translate-y-0'}`}>
-        <div className="flex justify-between items-center px-margin-mobile md:px-margin-desktop py-md max-w-7xl mx-auto">
-          <div className="font-headline-md text-headline-md font-bold text-secondary tracking-widest">
-            <img
-              alt="Turk Sarayi Logo"
-              className="h-12 md:h-16 w-auto object-contain drop-shadow-md"
-              src="/logo.png"
-            />
-          </div>
-          
-          <div className="hidden md:flex items-center gap-xl">
+      <nav
+        className={`fixed top-0 w-full z-[100] transition-all duration-500 ${
+          isLoading ? "-translate-y-full" : "translate-y-0"
+        } ${
+          isScrolled || isMenuOpen
+            ? "bg-surface/95 backdrop-blur-md shadow-lg shadow-black/20"
+            : "bg-gradient-to-b from-surface/95 via-surface/60 to-transparent"
+        }`}
+      >
+        <div className="flex justify-between items-center px-4 sm:px-6 md:px-16 py-3 md:py-4 max-w-7xl mx-auto">
+          <a href="#hero" className="flex items-center">
+            <div className="relative h-10 w-28 sm:h-12 sm:w-36 md:h-14 md:w-44">
+              <Image
+                alt="Turk Sarayi Logo"
+                className="object-contain drop-shadow-md"
+                src="/logo.png"
+                fill
+                sizes="(max-width: 640px) 112px, (max-width: 768px) 144px, 176px"
+                priority
+              />
+            </div>
+          </a>
+
+          {/* Desktop nav links */}
+          <div className="hidden md:flex items-center gap-6">
             {navLinks.map((link) => (
-              <a 
+              <a
                 key={link.name}
-                className="text-on-surface hover:text-secondary transition-colors duration-300 font-label-md text-label-md uppercase tracking-widest" 
+                className="text-on-surface hover:text-secondary transition-colors duration-300 text-xs uppercase tracking-widest font-semibold"
                 href={link.href}
               >
                 {link.name}
               </a>
             ))}
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setShowOrderDropdown(!showOrderDropdown)}
-                className="bg-secondary text-surface font-label-md text-label-md px-md py-sm rounded-DEFAULT hover:bg-secondary/90 transition-all duration-300 active:scale-95 ease-in-out font-bold uppercase tracking-widest shadow-lg flex items-center gap-2"
+                className="bg-secondary text-surface text-xs px-5 py-2.5 rounded-sm hover:bg-secondary/90 transition-all duration-300 active:scale-95 font-bold uppercase tracking-widest shadow-lg flex items-center gap-2"
               >
                 Order Online
-                <span className={`material-symbols-outlined transition-transform duration-300 ${showOrderDropdown ? 'rotate-180' : ''}`}>expand_more</span>
+                <span className={`material-symbols-outlined text-base transition-transform duration-300 ${showOrderDropdown ? 'rotate-180' : ''}`}>expand_more</span>
               </button>
-              
+
               {showOrderDropdown && (
-                <div className="absolute top-full right-0 mt-2 w-48 bg-surface-container border border-secondary/20 rounded-xl shadow-2xl overflow-hidden z-[110] animate-in fade-in slide-in-from-top-2">
-                  <a 
-                    href="https://www.zomato.com/hyderabad/turk-sarayi-tolichowki" 
-                    target="_blank" 
+                <div className="absolute top-full right-0 mt-2 w-48 bg-surface-container border border-secondary/20 rounded-xl shadow-2xl overflow-hidden z-[110]">
+                  <a
+                    href="https://www.zomato.com/hyderabad/turk-sarayi-tolichowki"
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/10 text-on-surface transition-colors border-b border-secondary/10 group/item"
                   >
-                    <img src="https://www.zomato.com/favicon.ico" className="w-5 h-5 rounded-sm group-hover:scale-110 transition-transform" alt="Zomato" />
-                    <span className="font-label-md">Zomato</span>
+                    <Image src="https://www.zomato.com/favicon.ico" width={20} height={20} className="rounded-sm group-hover:scale-110 transition-transform" alt="Zomato" />
+                    <span className="text-sm font-semibold">Zomato</span>
                   </a>
-                  <a 
-                    href="https://www.swiggy.com/city/hyderabad/turk-sarayi-tolichowki-rest934983" 
-                    target="_blank" 
+                  <a
+                    href="https://www.swiggy.com/city/hyderabad/turk-sarayi-tolichowki-rest934983"
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/10 text-on-surface transition-colors group/item"
                   >
-                    <img src="https://media-assets.swiggy.com/portal/m/logo_192x192.png" className="w-5 h-5 rounded-sm group-hover:scale-110 transition-transform" alt="Swiggy" />
-                    <span className="font-label-md">Swiggy</span>
+                    <Image src="https://media-assets.swiggy.com/portal/m/logo_192x192.png" width={20} height={20} className="rounded-sm group-hover:scale-110 transition-transform" alt="Swiggy" />
+                    <span className="text-sm font-semibold">Swiggy</span>
                   </a>
                 </div>
               )}
             </div>
           </div>
 
-          <button 
+          {/* Mobile hamburger */}
+          <button
             className="md:hidden text-secondary p-2 transition-transform duration-300 active:scale-90"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label="Toggle Menu"
@@ -356,152 +391,193 @@ export default function Home() {
           </button>
         </div>
 
-        <div className={`absolute top-full left-0 w-full bg-surface-container border-b border-secondary/20 md:hidden overflow-hidden transition-all duration-300 ease-in-out ${isMenuOpen ? 'max-h-[600px] py-lg shadow-2xl' : 'max-h-0 py-0'}`}>
-          <div className="flex flex-col items-center gap-lg px-margin-mobile">
+        {/* Mobile dropdown menu */}
+        <div className={`absolute top-full left-0 w-full bg-surface-container/98 backdrop-blur-xl border-b border-secondary/20 md:hidden overflow-hidden transition-all duration-300 ease-in-out ${isMenuOpen ? 'max-h-[85vh] py-6 shadow-2xl opacity-100' : 'max-h-0 py-0 opacity-0'}`}>
+          {/* Use block layout, NOT flex-col items-center — that collapses text to min-width */}
+          <div className="flex flex-col gap-1 px-6 text-center">
             {navLinks.map((link) => (
-              <a 
+              <a
                 key={link.name}
                 href={link.href}
                 onClick={() => setIsMenuOpen(false)}
-                className="text-on-surface hover:text-secondary font-label-md text-label-md uppercase tracking-widest transition-colors"
+                className="w-full block text-on-surface hover:text-secondary text-sm uppercase tracking-widest font-semibold transition-colors py-2"
               >
                 {link.name}
               </a>
             ))}
-            <div className="w-full flex flex-col gap-sm border-t border-secondary/10 pt-md">
-              <span className="text-secondary font-bold text-center text-xs uppercase tracking-widest mb-2">Order Online Via</span>
-              <a 
-                href="https://www.zomato.com/hyderabad/turk-sarayi-tolichowki" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-full bg-[#E23744] text-white py-3 rounded-xl flex items-center justify-center gap-3 font-bold shadow-lg active:scale-95 transition-all"
-              >
-                <img src="https://www.zomato.com/favicon.ico" className="w-6 h-6 rounded-sm" alt="Zomato" />
-                Zomato
-              </a>
-              <a 
-                href="https://www.swiggy.com/city/hyderabad/turk-sarayi-tolichowki-rest934983" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-full bg-[#FC8019] text-white py-3 rounded-xl flex items-center justify-center gap-3 font-bold shadow-lg active:scale-95 transition-all"
-              >
-                <img src="https://media-assets.swiggy.com/portal/m/logo_192x192.png" className="w-6 h-6 rounded-sm" alt="Swiggy" />
-                Swiggy
-              </a>
+            <div className="w-full flex flex-col gap-3 border-t border-secondary/10 pt-4 mt-3">
+              <span className="text-secondary font-bold text-center text-xs uppercase tracking-widest">Order Online Via</span>
+              <div className="grid grid-cols-2 gap-3">
+                <a
+                  href="https://www.zomato.com/hyderabad/turk-sarayi-tolichowki"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-[#E23744] text-white py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 font-bold shadow-lg active:scale-95 transition-all text-xs"
+                >
+                  <Image src="https://www.zomato.com/favicon.ico" width={16} height={16} className="rounded-sm" alt="Zomato" />
+                  Zomato
+                </a>
+                <a
+                  href="https://www.swiggy.com/city/hyderabad/turk-sarayi-tolichowki-rest934983"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-[#FC8019] text-white py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 font-bold shadow-lg active:scale-95 transition-all text-xs"
+                >
+                  <Image src="https://media-assets.swiggy.com/portal/m/logo_192x192.png" width={16} height={16} className="rounded-sm" alt="Swiggy" />
+                  Swiggy
+                </a>
+              </div>
             </div>
           </div>
         </div>
       </nav>
 
-      <main className="flex-grow pt-[80px] md:pt-[100px]">
-        {/* Hero Section */}
-        <section id="hero" className="relative min-h-[870px] flex items-center justify-center px-margin-mobile md:px-margin-desktop bg-surface-container-lowest overflow-hidden scroll-mt-[120px]">
+      <main className="flex-grow">
+        {/* ── Hero ── */}
+        <section
+          id="hero"
+          className="relative min-h-screen md:min-h-[870px] flex items-center justify-center bg-surface-container-lowest overflow-hidden scroll-mt-0"
+        >
+          {/* Background video */}
           <div className="absolute inset-0 w-full h-full">
             <video
               ref={videoRef}
               src="/hero-video.mp4"
+              autoPlay
+              loop
               muted
               playsInline
-              className="w-full h-full object-cover opacity-40"
+              className="w-full h-full object-cover opacity-60"
+              suppressHydrationWarning
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/80 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-surface/70 via-surface/20 to-surface/60 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-surface/80 via-surface/30 to-transparent pointer-events-none" />
           </div>
 
-          <div className="relative z-10 text-center max-w-4xl mx-auto flex flex-col items-center gap-md">
-            <h1 className="font-display-lg text-display-lg text-on-surface drop-shadow-2xl">
-              Welcome to Turk Sarayi — <br/><span className="text-secondary">The Turkish Palace of Hyderabad.</span>
-            </h1>
-            <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mt-sm">
-              Authentic Turkish Grills, Mandi &amp; Desserts · Tolichowki, Hyderabad.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-sm mt-lg">
-              <button 
-                onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-secondary text-surface font-label-md text-label-md px-xl py-sm rounded-DEFAULT tracking-widest hover:brightness-110 transition-all shadow-lg font-bold"
-              >
-                Contact Us
-              </button>
-              <button onClick={() => document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' })} className="border border-secondary text-secondary font-label-md text-label-md px-xl py-sm rounded-DEFAULT tracking-widest hover:bg-secondary/10 transition-colors">
-                View Menu
-              </button>
+          {/* Hero content — single container controls all padding */}
+          <div className="relative z-10 w-full pt-24 pb-16 px-5 sm:px-8 md:px-16">
+            <div className="flex flex-col items-center text-center gap-5 max-w-3xl mx-auto">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/10 border border-secondary/20 text-secondary text-[11px] uppercase tracking-widest font-semibold">
+                <span>Authentic Turkish Palace</span>
+              </div>
+              <h1 className="font-serif text-3xl leading-tight sm:text-4xl md:text-5xl lg:text-6xl font-bold text-on-surface drop-shadow-2xl">
+                Welcome to Turk Sarayi —{" "}
+                <br className="hidden sm:inline" />
+                <span className="text-secondary">The Turkish Palace of Hyderabad.</span>
+              </h1>
+              <p className="text-sm sm:text-base text-on-surface-variant leading-relaxed">
+                Authentic Turkish Grills, Mandi &amp; Desserts · Tolichowki, Hyderabad.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 mt-2 w-full sm:w-auto">
+                <button
+                  onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="bg-secondary text-surface text-sm font-bold px-10 py-4 rounded-sm tracking-widest hover:brightness-110 transition-all shadow-lg uppercase"
+                >
+                  Contact Us
+                </button>
+                <button
+                  onClick={() => document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="border border-secondary text-secondary text-sm font-semibold px-10 py-4 rounded-sm tracking-widest hover:bg-secondary/10 transition-colors uppercase"
+                >
+                  View Menu
+                </button>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* About Section */}
-        <section className="py-24 px-margin-mobile md:px-margin-desktop max-w-7xl mx-auto scroll-mt-[120px]" id="about">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-xl items-center">
-            <div className="flex flex-col gap-lg">
-              <div className="flex flex-col gap-sm">
-                <h2 className="font-headline-lg text-headline-lg text-secondary">A Majestic Modernity Experience</h2>
-                <p className="font-body-md text-body-md text-on-surface-variant leading-relaxed">
-                  Bringing the ancestral flavors of Istanbul to the heart of Tolichowki. Turk Sarayi is not just a meal; it's a journey through the rich culinary heritage of the Ottoman Empire, presented in a sleek, digitally native environment. Our deep, atmospheric lounge creates a sense of intimacy, where every bite of our live grills tells a story of tradition.
+        {/* ── About ── */}
+        <section
+          id="about"
+          className="py-16 sm:py-20 md:py-24 scroll-mt-[72px]"
+        >
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
+            {/* Text side */}
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-2">
+                <span className="text-secondary font-bold text-xs uppercase tracking-widest">Our Heritage</span>
+                <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold text-secondary leading-tight">
+                  A Majestic Modernity Experience
+                </h2>
+                <p className="text-sm sm:text-base text-on-surface-variant leading-relaxed mt-1">
+                  Bringing the ancestral flavors of Istanbul to the heart of Tolichowki. Turk Sarayi is not just a meal; it&apos;s a journey through the rich culinary heritage of the Ottoman Empire, presented in a sleek, digitally native environment. Our deep, atmospheric lounge creates a sense of intimacy, where every bite of our live grills tells a story of tradition.
                 </p>
               </div>
-              
-              <div className="grid grid-cols-2 gap-md mt-4">
-                <div className="flex items-center gap-sm">
-                  <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>restaurant_menu</span>
-                  <span className="font-label-md text-label-md text-on-surface">Authentic Recipes</span>
-                </div>
-                <div className="flex items-center gap-sm">
-                  <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
-                  <span className="font-label-md text-label-md text-on-surface">Live Grills</span>
-                </div>
-                <div className="flex items-center gap-sm">
-                  <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>schedule</span>
-                  <span className="font-label-md text-label-md text-on-surface">Open Till 1 AM</span>
-                </div>
-                <div className="flex items-center gap-sm">
-                  <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>delivery_dining</span>
-                  <span className="font-label-md text-label-md text-on-surface">Dine-In &amp; Delivery</span>
-                </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { icon: "restaurant_menu", label: "Authentic Recipes" },
+                  { icon: "local_fire_department", label: "Live Grills" },
+                  { icon: "schedule", label: "Open Till 1 AM" },
+                  { icon: "delivery_dining", label: "Dine-In & Delivery" },
+                ].map((feat) => (
+                  <div key={feat.icon} className="flex items-center gap-2.5 p-3 rounded-lg bg-surface-container/50 border border-secondary/10">
+                    <span
+                      className="material-symbols-outlined text-secondary text-xl shrink-0"
+                      style={{ fontVariationSettings: "'FILL' 1" }}
+                    >
+                      {feat.icon}
+                    </span>
+                    <span className="text-xs sm:text-sm text-on-surface font-semibold leading-tight">{feat.label}</span>
+                  </div>
+                ))}
               </div>
             </div>
-            <div className="relative h-[500px] rounded-2xl overflow-hidden border border-secondary/20 shadow-[0_0_30px_rgba(201,168,76,0.1)]">
-              <div className="absolute inset-0 turkish-pattern opacity-20 z-10 pointer-events-none"></div>
-              <img
+
+            {/* Image side */}
+            <div className="relative h-60 sm:h-80 md:h-[480px] rounded-2xl overflow-hidden border border-secondary/20 shadow-[0_0_30px_rgba(201,168,76,0.1)]">
+              <div className="absolute inset-0 turkish-pattern opacity-20 z-10 pointer-events-none" />
+              <Image
                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
-                alt="About Us"
+                alt="Turk Sarayi Restaurant Ambience"
                 src="/restaurant.png"
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
               />
             </div>
           </div>
+          </div>
         </section>
 
-        {/* Gallery Section */}
-        <section id="gallery" className="py-24 bg-surface-container-lowest overflow-hidden scroll-mt-[120px]">
-          <div className="max-w-7xl mx-auto mb-16 px-6 text-center">
-             <h2 className="font-display-lg text-display-lg text-secondary mb-sm uppercase tracking-widest">A Visual Feast</h2>
-             <p className="max-w-2xl mx-auto text-on-surface-variant font-body-lg">
-               Step inside the majestic world of Turk Sarayi. From our open-fire grills to our luxury lounge.
-             </p>
+        {/* ── Gallery ── */}
+        <section
+          id="gallery"
+          className="py-16 sm:py-20 md:py-24 bg-surface-container-lowest overflow-hidden scroll-mt-[72px]"
+        >
+          <div className="max-w-7xl mx-auto mb-10 md:mb-14 px-4 sm:px-6 text-center">
+            <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold text-secondary mb-3 uppercase tracking-widest">
+              A Visual Feast
+            </h2>
+            <p className="max-w-2xl mx-auto text-sm sm:text-base text-on-surface-variant">
+              Step inside the majestic world of Turk Sarayi. From our open-fire grills to our luxury lounge.
+            </p>
           </div>
 
           <div className="relative w-full">
-            <div className="pointer-events-none absolute top-0 left-0 z-10 h-full w-32 bg-gradient-to-r from-surface-container-lowest to-transparent" />
-            <div className="pointer-events-none absolute top-0 right-0 z-10 h-full w-32 bg-gradient-to-l from-surface-container-lowest to-transparent" />
+            <div className="pointer-events-none absolute top-0 left-0 z-10 h-full w-8 sm:w-16 md:w-32 bg-gradient-to-r from-surface-container-lowest to-transparent" />
+            <div className="pointer-events-none absolute top-0 right-0 z-10 h-full w-8 sm:w-16 md:w-32 bg-gradient-to-l from-surface-container-lowest to-transparent" />
 
-            <Marquee className="[--gap:2rem]" pauseOnHover>
+            <Marquee className="[--gap:1rem] sm:[--gap:1.5rem] md:[--gap:2rem]" pauseOnHover repeat={3}>
               {GALLERY_IMAGES.map((img, i) => (
                 <div
-                  className="group relative flex w-80 shrink-0 flex-col overflow-hidden rounded-3xl border border-secondary/10 bg-surface shadow-lg transition-all duration-500 hover:border-secondary/40"
+                  className="group relative flex w-56 sm:w-72 md:w-80 shrink-0 flex-col overflow-hidden rounded-2xl border border-secondary/10 bg-surface shadow-lg transition-all duration-500 hover:border-secondary/40"
                   key={i}
                 >
-                  <div className="relative h-96 w-full overflow-hidden">
+                  <div className="relative h-64 sm:h-80 md:h-96 w-full overflow-hidden">
                     <Image
                       alt={img.title}
                       className="h-full w-full object-cover transition-all duration-700 group-hover:scale-110"
                       fill
-                      sizes="(max-width: 768px) 100vw, 320px"
+                      sizes="(max-width: 640px) 224px, (max-width: 768px) 288px, 320px"
                       src={img.url}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-                    <div className="absolute bottom-0 w-full p-6 translate-y-4 opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
+                    <div className="absolute bottom-0 w-full p-4 sm:p-6 translate-y-4 opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
                       <span className="bg-secondary/20 text-secondary text-[10px] uppercase font-bold px-3 py-1 rounded-full border border-secondary/30 backdrop-blur-sm">
                         {img.tag}
                       </span>
-                      <h3 className="mt-2 font-display-sm text-white text-xl uppercase tracking-wider">
+                      <h3 className="mt-2 font-serif text-white text-lg uppercase tracking-wider">
                         {img.title}
                       </h3>
                     </div>
@@ -513,26 +589,32 @@ export default function Home() {
         </section>
 
         {/* Pattern Divider */}
-        <div className="w-full h-sm turkish-pattern border-y border-secondary/10"></div>
+        <div className="w-full h-3 turkish-pattern border-y border-secondary/10" />
 
-        {/* Menu Section */}
-        <section className="py-24 bg-surface-container-lowest scroll-mt-[120px]" id="menu">
-          <div className="max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop">
-            <div className="text-center mb-xl">
-              <h2 className="font-display-lg text-display-lg text-secondary mb-sm uppercase tracking-widest">Our Palace Menu</h2>
-              <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto">
+        {/* ── Menu ── */}
+        <section
+          id="menu"
+          className="py-16 sm:py-20 md:py-24 bg-surface-container-lowest scroll-mt-[72px]"
+        >
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-16">
+            <div className="text-center mb-8 sm:mb-12">
+              <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold text-secondary mb-3 uppercase tracking-widest">
+                Our Palace Menu
+              </h2>
+              <p className="text-sm sm:text-base text-on-surface-variant max-w-2xl mx-auto">
                 Explore our curated selection of authentic Turkish delicacies, from sizzling grills to indulgent desserts.
               </p>
             </div>
 
-            <div className="flex overflow-x-auto pb-md gap-md no-scrollbar scroll-smooth mb-xl border-b border-secondary/10">
+            {/* Category tabs — scrollable */}
+            <div className="flex overflow-x-auto pb-3 gap-1 sm:gap-2 no-scrollbar scroll-smooth mb-8 border-b border-secondary/10">
               {MENU_DATA.map((cat) => (
                 <button
                   key={cat.category}
                   onClick={() => setActiveCategory(cat.category)}
-                  className={`whitespace-nowrap px-md py-sm font-label-md text-label-md transition-all duration-300 border-b-2 ${
+                  className={`whitespace-nowrap px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all duration-300 border-b-2 shrink-0 ${
                     activeCategory === cat.category
-                      ? "border-secondary text-secondary"
+                      ? "border-secondary text-secondary font-bold"
                       : "border-transparent text-on-surface-variant hover:text-on-surface"
                   }`}
                 >
@@ -541,28 +623,25 @@ export default function Home() {
               ))}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md">
+            {/* Menu items grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {MENU_DATA.find((c) => c.category === activeCategory)?.items.map((item, idx) => (
                 <div
                   key={idx}
-                  className="bg-surface p-lg rounded-xl border border-secondary/10 hover:border-secondary/30 transition-all duration-300 shadow-sm hover:shadow-md group flex flex-col justify-between"
+                  className="bg-surface p-4 sm:p-5 rounded-xl border border-secondary/10 hover:border-secondary/30 transition-all duration-300 shadow-sm hover:shadow-md group flex flex-col justify-between"
                 >
-                  <div className="flex justify-between items-start mb-sm">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-title-lg text-title-lg text-on-surface group-hover:text-secondary transition-colors">
-                          {item.name}
-                        </h3>
-                      </div>
-                      <div className="flex gap-2">
-                        {item.bestseller && (
-                          <span className="bg-secondary/10 text-secondary text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border border-secondary/20">
-                            Bestseller
-                          </span>
-                        )}
-                      </div>
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <h3 className="text-sm sm:text-base text-on-surface group-hover:text-secondary transition-colors font-semibold leading-snug">
+                        {item.name}
+                      </h3>
+                      {item.bestseller && (
+                        <span className="bg-secondary/10 text-secondary text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border border-secondary/20 w-fit">
+                          Bestseller
+                        </span>
+                      )}
                     </div>
-                    <span className="font-title-md text-title-md text-secondary font-bold whitespace-nowrap ml-2">
+                    <span className="text-sm sm:text-base text-secondary font-bold whitespace-nowrap shrink-0">
                       {item.price}
                     </span>
                   </div>
@@ -572,85 +651,101 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Contact Us Section */}
-        <section id="contact" className="py-24 bg-surface scroll-mt-[120px]">
-          <div className="max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-start">
-              <div className="flex flex-col gap-8">
-                <div className="flex flex-col gap-4">
-                  <h2 className="font-display-lg text-display-lg text-secondary uppercase tracking-tighter leading-tight">Contact Us</h2>
-                  <p className="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
+        {/* ── Contact ── */}
+        <section
+          id="contact"
+          className="py-16 sm:py-20 md:py-24 bg-surface scroll-mt-[72px]"
+        >
+          <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-16">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-start">
+              {/* Info column */}
+              <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-2">
+                  <span className="text-secondary font-bold text-xs uppercase tracking-widest">Get In Touch</span>
+                  <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold text-secondary uppercase tracking-tight leading-tight">
+                    Contact Us
+                  </h2>
+                  <p className="text-sm sm:text-base text-on-surface-variant leading-relaxed mt-1">
                     Have a question or want to host a private royal feast? Send us a message and our team will get back to you.
                   </p>
                 </div>
-                
-                <div className="flex flex-col gap-6 mt-4">
-                  <div className="flex items-center gap-4 group">
-                    <div className="w-14 h-14 rounded-full bg-secondary/10 flex items-center justify-center transition-all duration-300 group-hover:bg-secondary group-hover:text-surface">
-                      <span className="material-symbols-outlined">location_on</span>
+
+                <div className="flex flex-col gap-5">
+                  {/* Address */}
+                  <div className="flex items-start gap-4 group">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 shrink-0 rounded-full bg-secondary/10 flex items-center justify-center transition-all duration-300 group-hover:bg-secondary group-hover:text-surface">
+                      <span className="material-symbols-outlined text-xl">location_on</span>
                     </div>
-                    <div className="flex flex-col">
-                      <span className="text-secondary font-bold uppercase text-xs tracking-widest">Visit Us</span>
-                      <span className="text-on-surface font-body-md">IAS Colony, Tolichowki, Hyderabad.</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 group">
-                    <div className="w-14 h-14 rounded-full bg-secondary/10 flex items-center justify-center transition-all duration-300 group-hover:bg-secondary group-hover:text-surface">
-                      <span className="material-symbols-outlined">call</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-secondary font-bold uppercase text-xs tracking-widest">Call Us</span>
-                      <span className="text-on-surface font-body-md">+91 77802 27803</span>
+                    <div className="flex flex-col pt-0.5">
+                      <span className="text-secondary font-bold uppercase text-[10px] tracking-widest mb-0.5">Visit Us</span>
+                      <span className="text-on-surface text-sm sm:text-base leading-snug">Beside Oasis School, IAS Colony, Tolichowki, Hyderabad.</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 group">
-                    <div className="w-14 h-14 rounded-full bg-secondary/10 flex items-center justify-center transition-all duration-300 group-hover:bg-secondary group-hover:text-surface">
-                      <span className="material-symbols-outlined">mail</span>
+                  {/* Phone */}
+                  <a href="tel:+917780227803" className="flex items-center gap-4 group">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 shrink-0 rounded-full bg-secondary/10 flex items-center justify-center transition-all duration-300 group-hover:bg-secondary group-hover:text-surface">
+                      <span className="material-symbols-outlined text-xl">call</span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-secondary font-bold uppercase text-xs tracking-widest">Email Us</span>
-                      <span className="text-on-surface font-body-md">contact@turksarayi.com</span>
+                      <span className="text-secondary font-bold uppercase text-[10px] tracking-widest mb-0.5">Call Us</span>
+                      <span className="text-on-surface text-sm sm:text-base group-hover:text-secondary transition-colors">+91 77802 27803</span>
                     </div>
-                  </div>
+                  </a>
+                  {/* Email */}
+                  <a href="mailto:contact@turksarayi.com" className="flex items-center gap-4 group">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 shrink-0 rounded-full bg-secondary/10 flex items-center justify-center transition-all duration-300 group-hover:bg-secondary group-hover:text-surface">
+                      <span className="material-symbols-outlined text-xl">mail</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-secondary font-bold uppercase text-[10px] tracking-widest mb-0.5">Email Us</span>
+                      <span className="text-on-surface text-sm sm:text-base group-hover:text-secondary transition-colors">contact@turksarayi.com</span>
+                    </div>
+                  </a>
                 </div>
               </div>
 
-              <div className="bg-surface-container rounded-[2rem] p-8 md:p-12 shadow-2xl border border-secondary/10 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 turkish-pattern opacity-5 -mr-16 -mt-16"></div>
-                <form ref={formRef} className="flex flex-col gap-6 relative z-10">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-secondary font-label-md uppercase tracking-widest ml-1 text-xs font-bold">Full Name</label>
-                    <input 
+              {/* Form */}
+              <div className="bg-surface-container rounded-2xl p-5 sm:p-8 md:p-10 shadow-2xl border border-secondary/10 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 turkish-pattern opacity-5 -mr-10 -mt-10 pointer-events-none" />
+                <form ref={formRef} onSubmit={handleContactSubmit} className="flex flex-col gap-4 sm:gap-5 relative z-10">
+                  {formSubmitted && (
+                    <div className="bg-secondary/10 border border-secondary/40 text-secondary p-3 sm:p-4 rounded-xl text-center font-bold text-xs sm:text-sm">
+                      Thank you! Your message has been received. Our team will contact you shortly.
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-secondary font-bold uppercase tracking-widest ml-1 text-xs">Full Name</label>
+                    <input
                       name="user_name"
-                      type="text" 
+                      type="text"
                       placeholder="Enter your name"
-                      className="bg-surface border border-secondary/20 rounded-xl px-4 py-4 text-on-surface focus:outline-none focus:border-secondary transition-all placeholder:text-on-surface-variant/40 shadow-inner"
+                      className="bg-surface border border-secondary/20 rounded-xl px-4 py-3 text-sm sm:text-base text-on-surface focus:outline-none focus:border-secondary transition-all placeholder:text-on-surface-variant/40"
                       required
                     />
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="text-secondary font-label-md uppercase tracking-widest ml-1 text-xs font-bold">Email Address</label>
-                    <input 
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-secondary font-bold uppercase tracking-widest ml-1 text-xs">Email Address</label>
+                    <input
                       name="user_email"
-                      type="email" 
+                      type="email"
                       placeholder="Enter your email"
-                      className="bg-surface border border-secondary/20 rounded-xl px-4 py-4 text-on-surface focus:outline-none focus:border-secondary transition-all placeholder:text-on-surface-variant/40 shadow-inner"
+                      className="bg-surface border border-secondary/20 rounded-xl px-4 py-3 text-sm sm:text-base text-on-surface focus:outline-none focus:border-secondary transition-all placeholder:text-on-surface-variant/40"
                       required
                     />
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="text-secondary font-label-md uppercase tracking-widest ml-1 text-xs font-bold">Your Message</label>
-                    <textarea 
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-secondary font-bold uppercase tracking-widest ml-1 text-xs">Your Message</label>
+                    <textarea
                       name="message"
                       placeholder="How can we help you?"
                       rows={4}
-                      className="bg-surface border border-secondary/20 rounded-xl px-4 py-4 text-on-surface focus:outline-none focus:border-secondary transition-all placeholder:text-on-surface-variant/40 shadow-inner resize-none"
+                      className="bg-surface border border-secondary/20 rounded-xl px-4 py-3 text-sm sm:text-base text-on-surface focus:outline-none focus:border-secondary transition-all placeholder:text-on-surface-variant/40 resize-none"
                       required
                     />
                   </div>
-                  <button 
+                  <button
                     type="submit"
-                    className="bg-secondary text-surface font-bold py-4 rounded-xl uppercase tracking-widest hover:brightness-110 transition-all mt-4 shadow-xl active:scale-[0.98] text-sm"
+                    className="bg-secondary text-surface font-bold py-3.5 rounded-xl uppercase tracking-widest hover:brightness-110 transition-all mt-1 shadow-xl active:scale-[0.98] text-xs sm:text-sm"
                   >
                     Send Message
                   </button>
@@ -661,66 +756,68 @@ export default function Home() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer id="footer" className="bg-surface-container-lowest border-t border-secondary/10 w-full pt-24 pb-12">
-        <div className="max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-xl mb-16">
-            {/* About Column */}
-            <div className="flex flex-col gap-md text-center md:text-left">
-              <span className="font-headline-md text-headline-md text-secondary uppercase tracking-widest">Turk Sarayi</span>
-              <p className="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+      {/* ── Footer ── */}
+      <footer id="footer" className="bg-surface-container-lowest border-t border-secondary/10 w-full pt-14 sm:pt-20 pb-8">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-16">
+          <div className="grid grid-cols-1 gap-8 mb-10 sm:mb-14 sm:grid-cols-3">
+            {/* Brand column — text-center on mobile, text-left on sm+ */}
+            <div className="text-center sm:text-left">
+              <span className="font-serif text-xl font-bold text-secondary uppercase tracking-widest block mb-3">Turk Sarayi</span>
+              <p className="text-xs sm:text-sm text-on-surface-variant leading-relaxed mb-4">
                 Bringing the ancestral flavors of Istanbul to the heart of Tolichowki. A majestic journey through rich culinary heritage.
               </p>
-              <div className="flex items-center justify-center md:justify-start gap-md mt-sm">
-                <a 
-                  href="https://www.instagram.com/turk_sarayi_/" 
-                  target="_blank" 
+              <div className="flex items-center gap-3 justify-center sm:justify-start">
+                <a
+                  href="https://www.instagram.com/turk_sarayi_/"
+                  target="_blank"
                   rel="noopener noreferrer"
-                  className="text-on-surface-variant hover:text-secondary transition-colors"
+                  className="w-9 h-9 rounded-full bg-surface flex items-center justify-center border border-secondary/10 text-on-surface-variant hover:text-secondary hover:border-secondary/30 transition-all"
                   aria-label="Instagram"
                 >
-                  <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
                 </a>
-                <a 
-                  href="https://www.facebook.com/profile.php?id=61559089940444" 
-                  target="_blank" 
+                <a
+                  href="https://www.facebook.com/profile.php?id=61559089940444"
+                  target="_blank"
                   rel="noopener noreferrer"
-                  className="text-on-surface-variant hover:text-secondary transition-colors"
+                  className="w-9 h-9 rounded-full bg-surface flex items-center justify-center border border-secondary/10 text-on-surface-variant hover:text-secondary hover:border-secondary/30 transition-all"
                   aria-label="Facebook"
                 >
-                  <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.323-1.325z"/></svg>
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.323-1.325z"/></svg>
                 </a>
               </div>
             </div>
 
-            {/* Contact Column */}
-            <div className="flex flex-col gap-md text-center md:text-left">
-              <span className="font-title-lg text-title-lg text-secondary uppercase tracking-widest">Quick Contact</span>
-              <div className="flex flex-col gap-sm">
-                <p className="font-body-md text-body-md text-on-surface-variant">
-                  Beside Oasis School, IAS Colony, Tolichowki, Hyderabad.
-                </p>
-                <p className="font-body-md text-body-md text-on-surface-variant">+91 77802 27803</p>
-                <p className="font-body-md text-body-md text-on-surface-variant">12:00 PM - 1:00 AM (Daily)</p>
+            {/* Contact column */}
+            <div className="text-center sm:text-left">
+              <span className="font-serif text-base font-bold text-secondary uppercase tracking-widest block mb-3">Quick Contact</span>
+              <div className="flex flex-col gap-1.5 text-xs sm:text-sm text-on-surface-variant">
+                <p>Beside Oasis School, IAS Colony, Tolichowki, Hyderabad.</p>
+                <a href="tel:+917780227803" className="hover:text-secondary transition-colors">+91 77802 27803</a>
+                <p>12:00 PM - 1:00 AM (Daily)</p>
               </div>
             </div>
 
-            {/* Quick Links Column */}
-            <div className="flex flex-col gap-md text-center md:text-right">
-              <span className="font-title-lg text-title-lg text-secondary uppercase tracking-widest">Navigation</span>
-              <div className="flex flex-col gap-sm">
-                <a className="font-label-md text-label-md text-on-surface-variant hover:text-secondary transition-colors uppercase tracking-widest" href="#hero">Home</a>
-                <a className="font-label-md text-label-md text-on-surface-variant hover:text-secondary transition-colors uppercase tracking-widest" href="#about">About</a>
-                <a className="font-label-md text-label-md text-on-surface-variant hover:text-secondary transition-colors uppercase tracking-widest" href="#gallery">Gallery</a>
-                <a className="font-label-md text-label-md text-on-surface-variant hover:text-secondary transition-colors uppercase tracking-widest" href="#menu">Menu</a>
-                <a className="font-label-md text-label-md text-on-surface-variant hover:text-secondary transition-colors uppercase tracking-widest" href="#contact">Contact</a>
+            {/* Navigation column */}
+            <div className="text-center sm:text-right">
+              <span className="font-serif text-base font-bold text-secondary uppercase tracking-widest block mb-3">Navigation</span>
+              <div className="flex flex-wrap justify-center sm:justify-end gap-x-5 gap-y-2">
+                {navLinks.map((link) => (
+                  <a
+                    key={link.name}
+                    className="text-xs text-on-surface-variant hover:text-secondary transition-colors uppercase tracking-widest"
+                    href={link.href}
+                  >
+                    {link.name}
+                  </a>
+                ))}
               </div>
             </div>
           </div>
 
-          <div className="border-t border-secondary/10 pt-8 text-center">
-            <span className="font-body-sm text-body-sm text-on-surface-variant opacity-70">
-              © 2024 Turk Sarayi. All Rights Reserved.
+          <div className="border-t border-secondary/10 pt-6 text-center">
+            <span className="text-xs text-on-surface-variant opacity-70">
+              © {new Date().getFullYear()} Turk Sarayi. All Rights Reserved.
             </span>
           </div>
         </div>
@@ -731,11 +828,11 @@ export default function Home() {
         href="https://wa.me/917780227803?text=Hey!%20i%20want%20to%20book%20an%20order"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-8 right-8 z-[101] bg-[#25D366] text-white p-4 rounded-full shadow-2xl hover:scale-110 hover:bg-[#128C7E] transition-all duration-300 flex items-center justify-center w-16 h-16"
+        className="fixed bottom-5 right-4 sm:bottom-8 sm:right-8 z-[101] bg-[#25D366] text-white p-3.5 sm:p-4 rounded-full shadow-2xl hover:scale-110 hover:bg-[#128C7E] active:scale-95 transition-all duration-300 flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16"
         aria-label="Contact on WhatsApp"
       >
         <svg
-          className="w-8 h-8 fill-current"
+          className="w-6 h-6 sm:w-8 sm:h-8 fill-current"
           viewBox="0 0 448 512"
           xmlns="http://www.w3.org/2000/svg"
         >
